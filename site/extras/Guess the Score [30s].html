@@ -35,6 +35,21 @@
   .scan{margin-top:22px;font:96px/1 'Bebas Neue',Impact,sans-serif}
   .scan small{display:block;font:500 24px/1.3 Inter,sans-serif;opacity:.9;margin-top:10px}
 
+  /* match mode: entries closed, live chart of guesses */
+  #s.match h1{font-size:120px}
+  #s.match .foot{display:none}
+  .live{display:none;position:absolute;left:110px;top:385px;width:1030px}
+  .live.on{display:block}
+  .live .closed{font:800 26px/1 Inter,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--yellow)}
+  .live .score{font:100px/1 'Bebas Neue',Impact,sans-serif;margin:12px 0 4px;white-space:nowrap}
+  .live .score small{font:500 24px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;opacity:.8;margin-left:18px;vertical-align:middle}
+  .live .chart{margin-top:14px}
+  .live .row{display:flex;align-items:center;gap:16px;margin:10px 0}
+  .live .lab{width:110px;font:46px/1 'Bebas Neue',Impact,sans-serif;text-align:right}
+  .live .bar{height:38px;border-radius:10px;background:var(--yellow);width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .live .bar.top{background:#fff}
+  .live .n{font:700 24px/1 Inter,sans-serif;opacity:.9;min-width:70px}
+  .live .sum{margin-top:16px;font:500 25px/1.3 Inter,sans-serif;opacity:.85}
   .foot{position:absolute;left:110px;width:1030px;bottom:28px;font:500 20px/1.4 Inter,sans-serif;opacity:.8}
   .pill{display:inline-block;margin-left:26px;vertical-align:middle;padding:10px 22px;border:3px solid rgba(255,255,255,.7);border-radius:999px;font:800 24px/1 Inter,sans-serif;letter-spacing:.04em;color:#fff}
 </style>
@@ -53,6 +68,12 @@
   </div>
   </div>
 
+  <div class="live" id="live">
+    <div class="closed">Match on now · entries closed</div>
+    <div class="score" id="livescore"></div>
+    <div class="chart" id="chart"></div>
+    <div class="sum" id="livesum"></div>
+  </div>
 
   <div class="right">
     <div class="badges">
@@ -92,16 +113,31 @@
     svg.innerHTML = out;
   } catch (e) {}
 
-  // Next home game, live from the Guess the Score script (same source as the guess page). Rolls over after each match.
+  // Live from the Guess the Score script: before kick-off shows the next home game, during the match shows the guesses chart.
   try {
     var C = window.GUESS_CONFIG || {};
     if (C.hookUrl) {
-      fetch(C.hookUrl + '?stage=match&t=' + Date.now(), { redirect: 'follow' }).then(function (r) { return r.json(); }).then(function (m) {
-        var el = document.getElementById('next'), sub = document.getElementById('nextsub');
-        if (!m || !m.matchId) { el.innerHTML = 'Next home game<small>Fixtures coming soon</small>'; return; }
-        var when = String(m.kickoffText || '');
-        var status = m.open ? 'Entries open now, close at kick-off' : (m.reason || 'Entries open the week before');
-        el.innerHTML = 'Next home game<b>' + esc(m.teamName || 'Town') + ' v ' + esc(m.opponent) + '</b><small>' + esc(when) + ' \u00b7 ' + esc(status) + '</small>';
+      fetch(C.hookUrl + '?stage=stats&t=' + Date.now(), { redirect: 'follow' }).then(function (r) { return r.json(); }).then(function (s) {
+        var el = document.getElementById('next');
+        if (!s || !s.match || !s.match.matchId) { el.innerHTML = 'Next home game<small>Fixtures coming soon</small>'; return; }
+        var m = s.match, team = s.teamName || 'Town';
+        if (s.mode === 'live') {
+          document.querySelector('.line').style.display = 'none';
+          document.querySelector('.tile').style.display = 'none';
+          document.getElementById('live').classList.add('on');
+          document.getElementById('s').classList.add('match');
+          var sc = document.getElementById('livescore');
+          sc.innerHTML = s.live ? esc(team) + ' ' + s.live.home + ' - ' + s.live.away + ' ' + esc(m.opponent) + '<small>' + esc(s.live.status === 'FINISHED' ? 'Full time' : 'Live') + '</small>'
+                                : esc(team) + ' v ' + esc(m.opponent) + '<small>Kick-off ' + esc(m.kickoffText) + '</small>';
+          var dist = s.dist || [], max = dist.length ? dist[0].n : 1, html = '';
+          dist.slice(0, 5).forEach(function (d, i) { html += '<div class="row"><div class="lab">' + esc(d.score) + '</div><div class="bar' + (i === 0 ? ' top' : '') + '" data-w="' + Math.max(6, Math.round(d.n / max * 72)) + '"></div><div class="n">' + d.n + '</div></div>'; });
+          document.getElementById('chart').innerHTML = html || '<div class="sum">No guesses this time.</div>';
+          setTimeout(function () { document.querySelectorAll('#chart .bar').forEach(function (b) { b.style.width = b.getAttribute('data-w') + '%'; }); }, 300);
+          document.getElementById('livesum').textContent = s.entries + (s.entries === 1 ? ' guess in. ' : ' guesses in. ') + (dist.length ? 'Most popular: ' + team + ' ' + dist[0].score.replace('-', ' - ') + ' ' + m.opponent + '.' : '') + ' Winners get a code by email after the final whistle.';
+        } else {
+          var status = m.open ? 'Entries open now' + (s.entries ? ', ' + s.entries + ' in so far' : '') + ', close at kick-off' : (m.reason || 'Entries open the week before');
+          el.innerHTML = 'Next home game<b>' + esc(team) + ' v ' + esc(m.opponent) + '</b><small>' + esc(m.kickoffText || '') + ' \u00b7 ' + esc(status) + '</small>';
+        }
       }).catch(function () { document.getElementById('nextsub').textContent = 'One guess per person, per home game'; });
     }
   } catch (e) {}

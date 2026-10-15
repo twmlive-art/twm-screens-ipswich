@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guess the Score, settle</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0e0e0e;color:#fff;font:500 16px/1.5 Inter,system-ui,sans-serif}
+  .wrap{max-width:460px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:22px;margin:0 0 4px}
+  .muted{color:#b5b5b5;font-size:14px}
+  .card{background:#181818;border:1px solid #2a2a2a;border-radius:14px;padding:18px;margin:14px 0}
+  input{height:48px;padding:0 14px;font:500 16px Inter,system-ui,sans-serif;background:#000;color:#fff;border:1px solid #2a2a2a;border-radius:10px;width:100%}
+  .row{display:flex;gap:10px;align-items:center}
+  .row input{width:80px;text-align:center;font-size:28px;height:64px}
+  button{height:48px;padding:0 18px;border:0;border-radius:10px;background:#ffd166;color:#111;font:700 16px Inter,system-ui,sans-serif;cursor:pointer;margin-top:12px;width:100%}
+  button[disabled]{opacity:.5}
+  .msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:14px;display:none}
+  .msg.bad{display:block;background:#2a1414;color:#ff6b6b}.msg.good{display:block;background:#14301b;color:#7bd88f}
+  .feed{font-size:13px;color:#ffd166;margin-top:6px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#2a2a2a;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Settle a match</h1>
+  <div class="muted">Enter the final score. Every exact guess gets a code by email straight away. This cannot be undone.</div>
+  <div class="card" id="pinCard">
+    <label class="muted">Admin PIN</label>
+    <input type="password" id="pin" inputmode="numeric" autocomplete="off">
+    <button id="open">Open</button>
+    <div class="msg" id="pinMsg"></div>
+  </div>
+  <div id="list"></div>
+</div>
+<script src="config.js"></script>
+<script>
+(function () {
+  var C = window.GUESS_CONFIG || {};
+  var TEAM = C.team || 'Town';
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function msg(id, kind, text){ var m = el(id); m.className = 'msg ' + kind; m.textContent = text; }
+  function get(params) {
+    return fetch(C.hookUrl + '?' + params + '&t=' + Date.now(), { redirect: 'follow' }).then(function (r) { return r.json(); });
+  }
+  function load() {
+    msg('pinMsg', '', '');
+    el('open').disabled = true; el('open').textContent = 'Loading...';
+    get('stage=admin&pin=' + encodeURIComponent(el('pin').value)).then(function (r) {
+      el('open').disabled = false; el('open').textContent = 'Open';
+      if (!r || !r.ok) return msg('pinMsg', 'bad', (r && r.message) || 'Could not load.');
+      render(r.matches);
+    }).catch(function () { el('open').disabled = false; el('open').textContent = 'Open'; msg('pinMsg', 'bad', 'Could not reach the script.'); });
+  }
+  function render(matches) {
+    el('pinCard').style.display = 'none';
+    var html = '';
+    if (!matches.length) html = '<div class="card muted">No matches in the last two weeks or next few hours.</div>';
+    matches.forEach(function (m) {
+      var settled = m.status === 'SETTLED';
+      html += '<div class="card" id="m' + m.matchId + '"><div><strong>' + esc(TEAM) + ' v ' + esc(m.opponent) + '</strong><span class="tag">' + esc(m.status) + '</span></div>' +
+        '<div class="muted">' + esc(m.date) + ' · ' + m.entries + ' entries' + (settled ? ' · ' + m.winners + ' winners · final ' + m.homeScore + '-' + m.awayScore : '') + '</div>';
+      if (!settled) {
+        var fh = m.feed && m.feed.status === 'FINISHED' ? m.feed.home : '', fa = m.feed && m.feed.status === 'FINISHED' ? m.feed.away : '';
+        html += (m.feed ? '<div class="feed">Feed says: ' + esc(m.feed.status) + (fh !== '' ? ' ' + fh + '-' + fa : '') + '</div>' : '') +
+          '<div class="row" style="margin-top:12px"><input type="tel" inputmode="numeric" id="h' + m.matchId + '" value="' + fh + '" placeholder="0"><span>-</span><input type="tel" inputmode="numeric" id="a' + m.matchId + '" value="' + fa + '" placeholder="0"></div>' +
+          '<button data-id="' + m.matchId + '" data-opp="' + esc(m.opponent) + '">Settle and email winners</button><div class="msg" id="s' + m.matchId + '"></div>';
+      }
+      html += '</div>';
+    });
+    el('list').innerHTML = html;
+    el('list').querySelectorAll('button[data-id]').forEach(function (b) { b.addEventListener('click', function () { settle(b.getAttribute('data-id'), b.getAttribute('data-opp'), b); }); });
+  }
+  function settle(id, opp, btn) {
+    var h = el('h' + id).value, a = el('a' + id).value;
+    if (h === '' || a === '') return msg('s' + id, 'bad', 'Put both scores in.');
+    if (!confirm('Settle ' + TEAM + ' ' + h + ' - ' + a + ' ' + opp + '? Winner emails go out now. No undo.')) return;
+    btn.disabled = true; btn.textContent = 'Settling...';
+    get('stage=settle&pin=' + encodeURIComponent(el('pin').value) + '&matchId=' + encodeURIComponent(id) + '&home=' + h + '&away=' + a).then(function (r) {
+      if (!r || !r.ok) { msg('s' + id, 'bad', (r && r.message) || 'Failed.'); btn.disabled = false; btn.textContent = 'Settle and email winners'; return; }
+      msg('s' + id, 'good', r.entries + ' entries, ' + r.winners + ' winners, ' + r.emailed + ' emailed' + (r.failed ? ', ' + r.failed + ' failed (see Log tab)' : ''));
+      btn.style.display = 'none';
+    }).catch(function () { msg('s' + id, 'bad', 'Could not reach the script. Check the sheet before trying again.'); btn.disabled = false; btn.textContent = 'Settle and email winners'; });
+  }
+  el('open').addEventListener('click', load);
+  el('pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') load(); });
+})();
+</script>
+</body>
+</html>

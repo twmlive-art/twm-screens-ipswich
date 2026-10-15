@@ -242,7 +242,7 @@
       return showStep("wait");
     }
     entry = { name: name, phone: phone, email: email, marketing_consent: "yes", consented_at: new Date().toISOString(),
-              source: "Spin to Win TV screens", page: location.href };
+              source: "Spin to Win TV screens Ipswich", page: location.href };
     // Ask the server first: has this number or this email spun in the last week?
     $("go").disabled = true; $("go").textContent = "One moment...";
     checkSpin(phone, email).then(function (c) {

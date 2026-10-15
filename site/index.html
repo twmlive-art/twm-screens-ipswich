@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TWM Screens</title>
+<title>TWM Ipswich Screens</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -63,7 +63,7 @@
   var VIDEO_MAX_SECS  = 300;                        // never let one video hang the loop
   var VIDEO_START_SECS = +q.get("vstart") || 45;    // how long a video gets to show its first frame (venue Wi-Fi is slow)
   var VIDEO_STALL_SECS = 20;                        // once playing, skip if it freezes this long
-  var QR_SRC   = "qr-calendar.svg";                 // points at threewisemonkeyscolchester.com/calendar/
+  var QR_SRC   = "qr-calendar.svg";                 // points at threewisemonkeysipswich.com/events/
   var QR_LABEL = "Scan for what's on";
   var SHOW_QR  = q.get("qr") !== "0";               // ?qr=0 hides it
   var DEBUG = q.get("debug") === "1";
@@ -314,7 +314,7 @@
   function buildInfo(item) {
     if (!item.date || !item.name) return null;   // in-house promos have no event details
     var info = document.createElement("div"); info.className = "info";
-    var venue = document.createElement("div"); venue.className = "venue"; venue.textContent = "Three Wise Monkeys \u00b7 Colchester";
+    var venue = document.createElement("div"); venue.className = "venue"; venue.textContent = "Three Wise Monkeys \u00b7 Ipswich";
     var title = document.createElement("div"); title.className = "title" + (item.name.length > 28 ? " long" : ""); title.textContent = item.name;
     var date = document.createElement("div"); date.className = "date";
     date.textContent = (item.until && item.until !== item.date) ? niceDate(item.date) + " to " + niceDate(item.until) : niceDate(item.date);
@@ -327,7 +327,7 @@
       when.textContent = bits.join("  \u00b7  ");
     }
     var tix = document.createElement("div"); tix.className = "tix"; tix.textContent = "Tickets & info";
-    var pill = document.createElement("div"); pill.className = "pill"; pill.textContent = "threewisemonkeyscolchester.com";
+    var pill = document.createElement("div"); pill.className = "pill"; pill.textContent = "threewisemonkeysipswich.com";
     var tile = dateTile(item);
     if (tile) info.appendChild(tile);
     info.appendChild(venue); info.appendChild(title); info.appendChild(date);

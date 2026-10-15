@@ -22,8 +22,9 @@
   .tile{margin-top:30px;display:flex;align-items:center;gap:22px}
   .box{width:130px;height:150px;border-radius:20px;background:#fff;color:var(--ink);font:130px/150px 'Bebas Neue',Impact,sans-serif;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)}
   .dash{font:100px/1 'Bebas Neue',Impact,sans-serif;color:var(--yellow)}
-  .tilecap{margin-left:22px;font:700 30px/1.25 Inter,sans-serif;max-width:560px}
-  .tilecap small{display:block;font-weight:500;font-size:22px;opacity:.85;margin-top:8px}
+  .tilecap{margin-left:22px;font:800 24px/1.2 Inter,sans-serif;max-width:620px;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+  .tilecap b{display:block;font:48px/1 'Bebas Neue',Impact,sans-serif;letter-spacing:.01em;color:#fff;margin-top:6px;text-transform:none}
+  .tilecap small{display:block;font:500 22px/1.3 Inter,sans-serif;opacity:.9;margin-top:6px;text-transform:none;letter-spacing:0;color:#fff}
 
   .right{position:absolute;right:110px;top:100px;width:560px;text-align:center}
   .badges{display:flex;gap:20px;justify-content:center;margin-bottom:34px}
@@ -48,7 +49,7 @@
     <div class="line">Call the final score and the pint's on us. <b>Free Other Monkey Brewing pint</b> for every spot-on guess.</div>
     <div class="tile">
     <div class="box" id="h">2</div><div class="dash">-</div><div class="box" id="a">1</div>
-    <div class="tilecap">One guess per person, per home game<small>Entries open a week before and close at kick-off</small></div>
+    <div class="tilecap" id="next">Next home game<small id="nextsub">Loading fixtures...</small></div>
   </div>
   </div>
 
@@ -66,6 +67,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="../guess/config.js"></script>
 <script>
 (function () {
   // The guess page lives in this repo at site/guess/, so the QR points at it relative to this slide (same as Spin to Win).
@@ -89,6 +91,21 @@
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) out += '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#000"/>';
     svg.innerHTML = out;
   } catch (e) {}
+
+  // Next home game, live from the Guess the Score script (same source as the guess page). Rolls over after each match.
+  try {
+    var C = window.GUESS_CONFIG || {};
+    if (C.hookUrl) {
+      fetch(C.hookUrl + '?stage=match&t=' + Date.now(), { redirect: 'follow' }).then(function (r) { return r.json(); }).then(function (m) {
+        var el = document.getElementById('next'), sub = document.getElementById('nextsub');
+        if (!m || !m.matchId) { el.innerHTML = 'Next home game<small>Fixtures coming soon</small>'; return; }
+        var when = String(m.kickoffText || '');
+        var status = m.open ? 'Entries open now, close at kick-off' : (m.reason || 'Entries open the week before');
+        el.innerHTML = 'Next home game<b>' + esc(m.teamName || 'Town') + ' v ' + esc(m.opponent) + '</b><small>' + esc(when) + ' \u00b7 ' + esc(status) + '</small>';
+      }).catch(function () { document.getElementById('nextsub').textContent = 'One guess per person, per home game'; });
+    }
+  } catch (e) {}
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   // score tile ticks through a few scores, slowly
   var scores = [[2,1],[1,0],[3,1],[2,2],[1,1],[3,0],[2,0],[0,0]], i = 0;

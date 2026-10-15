@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smokehouse Ipswich</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* 1920x1080 slide: Smokehouse food at TWM Ipswich, QR to the Ipswich table booking page. */
+  :root{--ink:#0a0a0a;--paper:#f3ede3;--ember:#e8622a;--smoke:#1a1614}
+  html,body{margin:0;width:100%;height:100%;background:var(--smoke);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#fff}
+  #s{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:var(--smoke)}
+  .photo{position:absolute;left:0;top:0;width:1120px;height:1080px;overflow:hidden}
+  .photo img{width:100%;height:100%;object-fit:cover;transform:scale(1.04);animation:push 30s ease-in-out infinite alternate;filter:saturate(1.1)}
+  @keyframes push{to{transform:scale(1.12)}}
+  .photo:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,22,20,0) 55%,var(--smoke) 100%)}
+  .right{position:absolute;left:1080px;top:0;width:840px;height:1080px;padding:70px 110px 0 60px}
+  .badge{background:#fff;border-radius:20px;height:100px;width:260px;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+  .badge img{max-height:72px;max-width:215px}
+  .kicker{margin-top:30px;font:800 26px/1 Inter,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--ember)}
+  h1{margin:12px 0 0;font:160px/.84 'Bebas Neue',Impact,sans-serif;color:#fff}
+  .line{margin-top:22px;font:700 30px/1.3 Inter,sans-serif;color:var(--paper);max-width:640px}
+  .line b{color:var(--ember)}
+  .qrrow{display:flex;align-items:center;gap:30px;margin-top:34px}
+  .qrwrap{background:#fff;border-radius:26px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  #qr{width:230px;height:230px;display:block}
+  .scan{font:76px/.95 'Bebas Neue',Impact,sans-serif}
+  .scan small{display:block;font:500 21px/1.3 Inter,sans-serif;color:var(--paper);margin-top:8px;max-width:330px}
+  .pill{position:absolute;right:110px;bottom:44px;padding:14px 30px;border:4px solid rgba(255,255,255,.6);border-radius:999px;font:800 28px/1 Inter,sans-serif;letter-spacing:.04em}
+  .addr{position:absolute;left:1140px;bottom:54px;font:500 22px/1.4 Inter,sans-serif;color:var(--paper);opacity:.8}
+</style>
+</head>
+<body>
+<div id="s">
+  <div class="photo"><img src="https://threewisemonkeysipswich.com/wp-content/uploads/2025/03/food-pic2.jpeg" alt=""></div>
+  <div class="right">
+    <div class="badge"><img src="../omb/twm-logo-black.png" alt="Three Wise Monkeys"></div>
+    <div class="kicker">Smokehouse · Ipswich</div>
+    <h1>Low<br>and slow</h1>
+    <div class="line">Slow-smoked BBQ, hand-made burgers, wings and smoked meats. <b>Book a table</b> for tonight or the weekend.</div>
+    <div class="qrrow">
+      <div class="qrwrap"><svg id="qr" viewBox="0 0 1 1" shape-rendering="crispEdges"></svg></div>
+      <div class="scan">Scan to book<small>Or ask at the bar.</small></div>
+    </div>
+  </div>
+  <div class="addr">threewisemonkeysipswich.com</div>
+  <div class="pill">TWM IPSWICH</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  var BOOK_URL = "https://threewisemonkeysipswich.com/reservation/";
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080), el = document.getElementById('s');
+    el.style.transform = 'scale(' + s + ')';
+    el.style.left = ((window.innerWidth - 1920 * s) / 2) + 'px'; el.style.top = ((window.innerHeight - 1080 * s) / 2) + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+  try {
+    var q = qrcode(0, 'M'); q.addData(BOOK_URL); q.make();
+    var n = q.getModuleCount(), svg = document.getElementById('qr'), out = '';
+    svg.setAttribute('viewBox', '0 0 ' + n + ' ' + n);
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) out += '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#000"/>';
+    svg.innerHTML = out;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

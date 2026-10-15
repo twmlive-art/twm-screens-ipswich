@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guess the Score, code check</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0e0e0e;color:#fff;font:500 16px/1.5 Inter,system-ui,sans-serif}
+  .wrap{max-width:420px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:22px;margin:0 0 4px}
+  .muted{color:#b5b5b5;font-size:14px}
+  .card{background:#181818;border:1px solid #2a2a2a;border-radius:14px;padding:18px;margin:14px 0}
+  input{height:56px;padding:0 14px;font:700 22px Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;border:1px solid #2a2a2a;border-radius:10px;width:100%}
+  input.staff{font-size:16px;height:44px;letter-spacing:0;text-transform:none;font-weight:500;margin-top:10px}
+  button{height:52px;border:0;border-radius:10px;background:#ffd166;color:#111;font:700 16px Inter,system-ui,sans-serif;cursor:pointer;margin-top:12px;width:100%}
+  button.redeem{background:#7bd88f}
+  button[disabled]{opacity:.5}
+  .status{font-size:40px;font-weight:700;margin:6px 0}
+  .VALID{color:#7bd88f}.USED{color:#ff6b6b}.EXPIRED{color:#ff6b6b}.REDEEMED{color:#7bd88f}.NO{color:#ff6b6b}
+  .msg{margin-top:10px;font-size:14px;color:#b5b5b5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Code check</h1>
+  <div class="muted">Bar staff: type the code from the customer's email. If it says VALID, press Redeem, then apply the "Guess the Score" discount in Square and put the code in the order note.</div>
+  <div class="card">
+    <input id="code" placeholder="GTS-XXXX-XXXX" autocomplete="off" autocapitalize="characters">
+    <input class="staff" id="staff" placeholder="Your name (for the log)" autocomplete="off">
+    <button id="look">Check</button>
+    <div id="out"></div>
+  </div>
+</div>
+<script src="config.js"></script>
+<script>
+(function () {
+  var C = window.GUESS_CONFIG || {};
+  var TEAM = C.team || 'Town';
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function get(params) { return fetch(C.hookUrl + '?' + params + '&t=' + Date.now(), { redirect: 'follow' }).then(function (r) { return r.json(); }); }
+  try { el('staff').value = localStorage.getItem('gts-staff') || ''; } catch (e) {}
+  function look() {
+    el('out').innerHTML = '<div class="msg">Checking...</div>';
+    get('stage=code&code=' + encodeURIComponent(el('code').value)).then(show).catch(function () { el('out').innerHTML = '<div class="msg">Could not reach the script.</div>'; });
+  }
+  function show(r) {
+    if (!r.found) { el('out').innerHTML = '<div class="status NO">NO</div><div class="msg">' + esc(r.message || '') + '</div>'; return; }
+    var html = '<div class="status ' + esc(r.status) + '">' + esc(r.status) + '</div>' +
+      '<div class="msg">' + esc(r.name || '') + ' · ' + esc(TEAM) + ' v ' + esc(r.opponent || '') + ' · valid ' + esc(r.validOn || '') + (r.redeemedAt ? ' · used ' + esc(r.redeemedAt) + (r.redeemedBy ? ' by ' + esc(r.redeemedBy) : '') : '') + '</div>';
+    if (r.status === 'VALID') html += '<button class="redeem" id="redeem">Redeem, one free OMB pint</button>';
+    if (r.message) html += '<div class="msg">' + esc(r.message) + '</div>';
+    el('out').innerHTML = html;
+    var b = el('redeem'); if (b) b.addEventListener('click', redeem);
+  }
+  function redeem() {
+    try { localStorage.setItem('gts-staff', el('staff').value); } catch (e) {}
+    el('redeem').disabled = true;
+    get('stage=redeem&code=' + encodeURIComponent(el('code').value) + '&staff=' + encodeURIComponent(el('staff').value)).then(show).catch(function () { el('out').innerHTML = '<div class="msg">Could not reach the script.</div>'; });
+  }
+  el('look').addEventListener('click', look);
+  el('code').addEventListener('keydown', function (e) { if (e.key === 'Enter') look(); });
+})();
+</script>
+</body>
+</html>

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Guess the Score</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0b3fa8;--bg2:#062a74;--card:rgba(0,0,0,.35);--ink:#fff;--muted:#cfd8f0;--accent:#ffd166;--line:rgba(255,255,255,.18);--bad:#ff8a8a;--good:#9be7a8}
@@ -73,7 +75,7 @@
     <input class="hp" type="text" id="website" tabindex="-1" autocomplete="off">
     <div class="tick"><input type="checkbox" id="marketing"><span>Sign me up to Monkey Points so I earn points on every round, and email me about what's on at Three Wise Monkeys. You can unsubscribe any time. This is needed to enter.</span></div>
     <div class="tick"><input type="checkbox" id="terms"><span>I'm over 18 and accept the <a href="terms.html" style="color:#fff">terms</a>.</span></div>
-    <button type="submit" id="btn">Lock in my guess</button>
+    <button type="submit" id="btn" disabled>Lock in my guess</button>
     <div class="msg" id="msg"></div>
   </form>
 
@@ -97,6 +99,8 @@
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function show(kind, text){ var m = $('msg'); m.className = 'msg ' + kind; m.textContent = text; }
   if (C.venue) $('venue').textContent = C.venue;
+  function gate(){ $('btn').disabled = !($('marketing').checked && $('terms').checked); }
+  $('marketing').addEventListener('change', gate); $('terms').addEventListener('change', gate);
 
   // UK and overseas numbers -> E.164
   function e164(raw) {
@@ -130,7 +134,7 @@
     card.innerHTML = '<div class="match"><div class="team">' + esc(m.teamName || C.team || 'Town') + '</div><div class="v">v</div><div class="team away">' + esc(m.opponent) + '</div></div>' +
       '<div class="ko">Kick-off ' + esc(m.kickoffText) + '</div>';
     if (m.open) {
-      $('form').style.display = 'block';
+      $('form').style.display = 'block'; gate();
       try { var s = JSON.parse(localStorage.getItem('gts') || 'null'); if (s) { $('name').value = s.n || ''; $('mobile').value = s.m || ''; $('email').value = s.e || ''; } } catch (e) {}
     } else {
       card.innerHTML += '<div class="closed">' + esc(m.reason || 'Entries are not open yet.') + '</div>';
@@ -166,7 +170,16 @@
     });
   });
 
-  get('stage=match').then(render);
+  // show the last known fixture straight away, then refresh it from the script
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem('gts-match') || 'null'); } catch (e) {}
+  if (cached && cached.m && Date.now() - cached.t < 6 * 3600 * 1000) {
+    if (cached.m.closesISO && new Date(cached.m.closesISO).getTime() < Date.now()) cached = null; else render(cached.m);
+  }
+  get('stage=match').then(function (m) {
+    if (m) { try { localStorage.setItem('gts-match', JSON.stringify({ t: Date.now(), m: m })); } catch (e) {} render(m); }
+    else if (!cached) render(null);
+  });
 })();
 </script>
 </body>
